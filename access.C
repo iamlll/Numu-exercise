@@ -5,16 +5,16 @@
 using namespace std;
 
 const Int_t L = 600; //m; distance from Icarus to the source
-TCanvas c1("c1", "Plots", 1500, 600);
+TCanvas c1("c1", "Plots", 1200, 1200);
 TH1D* h1;
 TGraph* graph;
-Int_t nbinsx, size;
+Int_t nbinsx, size; //# bins in provided histogram + # points in provided graph
 
 ofstream myfile;
 
 void readFiles(){
    //Split canvas
-   c1.Divide(3,1);
+   c1.Divide(2,2);
    
    //retrieving histogram from file
    TFile* flux = new TFile("flux.root");
@@ -124,6 +124,31 @@ Double_t* countEvents(Double_t fluxes[], Double_t areas[]){
    return events;
 }
 
+void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_t ys[]){
+   /*
+   Double_t contours[3] = {1.64, 7.74, 23.40}; //values corresponding to dX^2_90, dX^2_3sigma, and dX^2_5sigma, respectively.
+   h2->SetContour(3, contours);
+   h2->Draw("CONT Z LIST");
+   c1.Update();
+*/
+   TH2D *hCont = new TH2D("hCont","ChiSquared Contour",numX-1, xs, numY-1, ys);
+   hCont->SetTitle("ChiSquared Contour; sin(2theta_mumu)^2; dm_41^2 (eV^2)");
+   for(Int_t i=0; i< numX; i++){
+      for(Int_t j=0; j<numY; j++){
+         if(i!=0 && i!=numX-1 && j!=0 && j!=numY-1){
+             if((Chi[i][j+1]>1.64 && Chi[i][j-1]<1.64)||(Chi[i+1][j]>1.64 && Chi[i-1][j]<1.64)){ hCont->Fill(xs[i],ys[j],1.64); }
+             if((Chi[i][j+1]>7.74 && Chi[i][j-1]<7.74)||(Chi[i+1][j]>7.74 && Chi[i-1][j]<7.74)){ hCont->Fill(xs[i], ys[j], 7.74); }
+             if((Chi[i][j+1]>23.4 && Chi[i][j-1]<23.4)||(Chi[i+1][j]>23.4 && Chi[i-1][j]<23.4)){ hCont->Fill(xs[i],ys[j],23.4); }            
+         }         
+      }
+   }
+   c1.cd(4);
+   gPad->SetLogy(); gPad->SetLogx();
+   gStyle->SetPalette(1);
+   hCont->Draw("COLZ");   
+   
+}
+
 Double_t** chiSq(Double_t nrgs[], Double_t events[]){
    c1.cd(3);
 
@@ -198,14 +223,10 @@ Double_t** chiSq(Double_t nrgs[], Double_t events[]){
    
    gPad->SetLogy(); gPad->SetLogx(); gPad->SetLogz(); 
    gStyle->SetPalette(1);
-//   g->Draw("COLZ");
    h2->Draw("COLZ");   
-/*
-   Double_t contours[3] = {1.64, 7.74, 23.40}; //values corresponding to dX^2_90, dX^2_3sigma, and dX^2_5sigma, respectively.
-   h2->SetContour(3, contours);
-   h2->Draw("CONT Z LIST");
-   c1.Update();
-*/
+   
+   drawContours(Chi2, No_ang, No_mass, xs, ys);   
+
    return Chi2;
 }
 
