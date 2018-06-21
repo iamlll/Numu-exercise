@@ -71,17 +71,18 @@ vector<Double_t> findFluxNu(){
    return fluxNu;
 }
 */
+
+//finds energies corresponding to each bin, in GeV.
 Double_t* findEnergies(){
    Double_t* nrgs = new Double_t[nbinsx];
    for(int i=0; i<nbinsx; i++){
-      Double_t en = h1->GetXaxis()->GetBinCenter(i+1);
+      Double_t en = h1->GetXaxis()->GetBinCenter(i+1); //again, ignoring the underflow bin 0
       nrgs[i] = en;
    }
    return nrgs;
 }
 
-//Find cross-sectional areas
-
+//Find cross-sections of neutrino events
 Double_t* findCrossSections(){
    Double_t* areas = new Double_t[nbinsx];
    //Get total # points in graph
@@ -103,14 +104,15 @@ Double_t* findCrossSections(){
    return areas;
 }
 
+//Find "actual" event counts by multiplying data by event rate
 Double_t* countEvents(Double_t fluxes[], Double_t areas[]){
    Double_t* events = new Double_t[nbinsx];
    /*
    cout << "#\tflux\t\tcross" << endl;
    for (int i = 0; i < nbinsx; i++){
       cout << i<< "\t" << fluxes[i] << "\t" << areas[i] << endl;
-   }*/
-//FIND EVENT COUNTS
+   }
+   */
    //units of cross-section: 10e-38 cm^2/Ar = 10e-38/100/100 m^2/Ar
    //units of flux: N/[m^2*(50MeV)*(10^6 PoT)] 
    
@@ -124,6 +126,7 @@ Double_t* countEvents(Double_t fluxes[], Double_t areas[]){
    return events;
 }
 
+//Draw contours for 90% conf level, 3sigma, and 5sigma in separate plot
 void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_t ys[]){
    //Contour values = {1.64, 7.74, 23.40}, corresponding to dX^2_90, dX^2_3sigma, and dX^2_5sigma, respectively.
    
@@ -144,6 +147,7 @@ void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_
    hCont->Draw("COLZ");      
 }
 
+//Find and store all Chi-squared values from data
 Double_t** chiSq(Double_t nrgs[], Double_t events[]){
    c1.cd(3);
 
@@ -159,12 +163,10 @@ Double_t** chiSq(Double_t nrgs[], Double_t events[]){
 
    myfile.open("ChiSquareData.txt");
    
-//CHI-SQUARED TESTS
    //Loop through all plausible dm^2 and sin(2theta_mumu)^2 values
    
    myfile << "Entry #:\tMass^2:\tAngle^2:\tChi^2:\n";
    
-   Int_t countr = 0;
    Int_t xCount = 0; Int_t yCount = 0;   
 
    for(Double_t ang2 = pow(10,-2); ang2 < 1.0; ang2= ang2*pow(10,spaceA)){
@@ -179,7 +181,7 @@ Double_t** chiSq(Double_t nrgs[], Double_t events[]){
    TH2D *h2 = new TH2D("h2","ChiSquared Contour",No_ang-1, xs, No_mass-1, ys);
    h2->SetTitle("ChiSquared Contour; sin(2theta_mumu)^2; dm_41^2 (eV^2)");
   
-   Double_t minChi=10.0;   
+   Double_t minChi=10.0; //minimum Chi-squared value   
  
    for(Int_t i=0; i < No_ang; i++){
       Chi2[i] = new Double_t[No_mass];
@@ -201,11 +203,11 @@ Double_t** chiSq(Double_t nrgs[], Double_t events[]){
          }
          Chi2[i][j] = Chi2sum;
          if(i==0 && j==0){ minChi = Chi2[i][j]; }
-         if(Chi2sum < minChi) minChi = Chi2sum; 
-//         cout << Chi2sum << "\tMin Chi2: " << minChi << endl;
+         if(Chi2sum < minChi) minChi = Chi2sum; //finding minimum Chi-sq value
       } 
    }
 
+//update array of Chi-sq values and fill the histogram
    for(int nSine=0; nSine < No_ang; nSine++){
       for(int nMass=0; nMass < No_mass; nMass++){
          Chi2[nSine][nMass] = Chi2[nSine][nMass]-minChi;
