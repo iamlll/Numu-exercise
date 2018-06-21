@@ -5,7 +5,7 @@
 using namespace std;
 
 const Int_t L = 600; //m; distance from Icarus to the source
-TCanvas c1("c1", "Plots", 1200, 1200);
+TCanvas c1("c1", "Plots", 1000, 1000);
 TH1D* h1;
 TGraph* graph;
 Int_t nbinsx, size; //# bins in provided histogram + # points in provided graph
@@ -125,12 +125,8 @@ Double_t* countEvents(Double_t fluxes[], Double_t areas[]){
 }
 
 void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_t ys[]){
-   /*
-   Double_t contours[3] = {1.64, 7.74, 23.40}; //values corresponding to dX^2_90, dX^2_3sigma, and dX^2_5sigma, respectively.
-   h2->SetContour(3, contours);
-   h2->Draw("CONT Z LIST");
-   c1.Update();
-*/
+   //Contour values = {1.64, 7.74, 23.40}, corresponding to dX^2_90, dX^2_3sigma, and dX^2_5sigma, respectively.
+   
    TH2D *hCont = new TH2D("hCont","ChiSquared Contour",numX-1, xs, numY-1, ys);
    hCont->SetTitle("ChiSquared Contour; sin(2theta_mumu)^2; dm_41^2 (eV^2)");
    for(Int_t i=0; i< numX; i++){
@@ -143,10 +139,9 @@ void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_
       }
    }
    c1.cd(4);
-   gPad->SetLogy(); gPad->SetLogx();
+   gPad->SetLogy(); gPad->SetLogx(); gPad->SetLogz();
    gStyle->SetPalette(1);
-   hCont->Draw("COLZ");   
-   
+   hCont->Draw("COLZ");      
 }
 
 Double_t** chiSq(Double_t nrgs[], Double_t events[]){
