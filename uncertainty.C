@@ -125,7 +125,7 @@ Double_t** chiSq(Double_t nrgs[], Double_t events[]){
    Double_t xs[No_ang];
    Double_t ys[No_mass];
 
-   myfile2a.open("ChiSquareData.txt");
+   myfile2a.open("ChiSquareData2a.txt");
    
    //Loop through all plausible dm^2 and sin(2theta_mumu)^2 values
    
