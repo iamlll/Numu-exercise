@@ -211,7 +211,7 @@ Int_t near(){
    Double_t iPOT; //protons-on-target in Icarus
    cout << "Protons on target for SBND? ";
    cin >> sPOT;
-   cout << "\nProtons on target for ICARUS? ";
+   cout << "Protons on target for ICARUS? ";
    cin >> iPOT;
    cout << endl;
 
