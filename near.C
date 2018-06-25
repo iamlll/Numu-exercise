@@ -3,13 +3,11 @@
 #include <math.h>
 using namespace std;
 
-const Int_t Icarus_dist = 600; //m, distance from Icarus to the source
-const Int_t activeIc = 476; //476 tons active mass of LAr in Icarus
-//const Double_t iPOT = 6e20; //protons-on-target in Icarus
-
 const Int_t SBND_dist = 100; //m, dist from SBND to the source
+const Int_t Icarus_dist = 600; //m, distance from Icarus to the source
+
 const Int_t activeSBND = 112; //112 tons active mass of LAr in SBND
-//const Double_t sPOT = 1e20; //protons-on-target in SBND
+const Int_t activeIc = 476; //476 tons active mass of LAr in Icarus
 
 TCanvas c1("c1", "Plots", 900, 450);
 TH1D* h1;
@@ -160,6 +158,7 @@ Double_t** chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[]){
             if(farEvents[n]==0 || nearEvents[n]==0) {continue;}
 
 /*taking hbar and c into account, from Boris Kayser's paper,
+
 * probability P_{numu->numu} = 1-sin(2theta_mumu)^2*sin(1.27*dm^2(eV^2)*L(km)/E_nu(GeV))^2
 */
             auto prob = 1 - xs[i]*pow(sin(1.27*ys[j]*0.001*Icarus_dist/nrgs[n]),2); //for Icarus
@@ -207,13 +206,21 @@ Double_t** chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[]){
    return Chi2;
 }
 
-Int_t near(Double_t sPOT, Double_t iPOT){
+Int_t near(){
+   Double_t sPOT; //protons-on-target in SBND
+   Double_t iPOT; //protons-on-target in Icarus
+   cout << "Protons on target for SBND? ";
+   cin >> sPOT;
+   cout << "\nProtons on target for ICARUS? ";
+   cin >> iPOT;
+   cout << endl;
+
    readFiles();
    Double_t* flux = findFlux();
    Double_t* energy = findEnergies();    
    Double_t* cross = findCrossSections();
-   Double_t* S_bendy_vents = countEvents(flux, cross, SBND_dist, activeSBND, iPOT);
-   Double_t* icky_vents = countEvents(flux, cross, Icarus_dist, activeIc, sPOT);
+   Double_t* S_bendy_vents = countEvents(flux, cross, SBND_dist, activeSBND, sPOT);
+   Double_t* icky_vents = countEvents(flux, cross, Icarus_dist, activeIc, iPOT);
    chiSq(energy, icky_vents, S_bendy_vents);
    return 0;
 }
