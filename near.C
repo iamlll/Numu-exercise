@@ -5,11 +5,11 @@ using namespace std;
 
 const Int_t Icarus_dist = 600; //m, distance from Icarus to the source
 const Int_t activeIc = 476; //476 tons active mass of LAr in Icarus
-const Double_t iPOT = 6e20; //protons-on-target in Icarus
+//const Double_t iPOT = 6e20; //protons-on-target in Icarus
 
 const Int_t SBND_dist = 100; //m, dist from SBND to the source
 const Int_t activeSBND = 112; //112 tons active mass of LAr in SBND
-const Double_t sPOT = 6e20; //protons-on-target in SBND
+//const Double_t sPOT = 1e20; //protons-on-target in SBND
 
 TCanvas c1("c1", "Plots", 900, 450);
 TH1D* h1;
@@ -129,7 +129,7 @@ Double_t** chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[]){
    Double_t xs[No_ang];
    Double_t ys[No_mass];
 
-   myfile2b.open("ChiSquareData.txt");
+   myfile2b.open("ChiSquareData2b.txt");
    
    //Loop through all plausible dm^2 and sin(2theta_mumu)^2 values
    
@@ -207,7 +207,7 @@ Double_t** chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[]){
    return Chi2;
 }
 
-Int_t near(){
+Int_t near(Double_t sPOT, Double_t iPOT){
    readFiles();
    Double_t* flux = findFlux();
    Double_t* energy = findEnergies();    
