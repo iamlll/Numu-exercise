@@ -87,7 +87,7 @@ Double_t* countEvents(Double_t fluxes[], Double_t areas[], Int_t distance, Int_t
    auto scalingfactor = pow(470./distance,2) * 1e-42 * totAr * (PoT*1e-6); //need scaling factor for distance (data normalized at 470 m from source); 1e-4 converting cm^2 to m^2; PoT=protons on-target     
 
    for(int i=0; i < nbinsx; i++){
-      events[i] = fluxes[i]*areas[i] * scalingfactor ; //left with units of: (# neutrinos interacting)/50 MeV
+      events[i] = fluxes[i]*areas[i] * scalingfactor ; //left with units of: (# neutrinos interacting)/50 MeV bin
    }
    return events;
 }
@@ -169,13 +169,13 @@ Double_t** chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[]){
 * far detector, we only know our measurements from the far detector as well as we knew it in the
 * near detector, i.e. sqrt(N_SBND). However, this error relies not on the exact number of events
 * seen from SBND, but rather the proportion of the error per bin: sqrt(N_100)/N_100. 
-* Scaling this value to that of Icarus, multiply by the counting error of Icarus, sqrt(N_600): 
-* E_propagated = sqrt(N_600)*[sqrt(N_100)/N_100]. Thus,
-* E_tot (matrix values) = sqrt(N_600*[sqrt(N_100)/N_100])^2 + sqrt(N_600)^2 = N_600/sqrt(N_100)+N_600,
+* Scaling this value to that of Icarus: 
+* E_propagated = [sqrt(N_100)/N_100]^2*(N_600/N_100). Thus,
+* E_tot (matrix values) = [sqrt(N_100)/N_100]^2*(N_600/N_100) + sqrt(N_600)^2,
 * since Icarus also has its own counting error to deal with.
 * Chi^2 = Sum(N_i^{null} - N_i^{osc})^2*1/E_tot
 */
-            auto totErr = farEvents[n]/sqrt(nearEvents[n]) + farEvents[n];
+            auto totErr = pow((sqrt(nearEvents[n])/nearEvents[n]),2)*(farEvents[n]/nearEvents[n]) + farEvents[n];
             auto t1 = pow(totErr, -1);
             auto t2 = pow(farEvents[n]-prob*farEvents[n], 2);      
             Chi2sum += t1*t2;
