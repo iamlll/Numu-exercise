@@ -1,4 +1,4 @@
-//Making a contour plot at 90% confidence, 3sigma, and 5sigma for a nu_muon disappearance simulation with Gaussian smearing.
+//Making a 5sigma contour plot for a nu_muon disappearance simulation with Gaussian smearing.
 
 #include <iostream>
 #include <fstream>
