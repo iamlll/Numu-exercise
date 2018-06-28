@@ -90,9 +90,8 @@ Double_t* findCrossSections(){
 }
 
 //Find "actual" event counts by multiplying data by event rate
-TH1D* countEvents(Double_t energy[], Double_t fluxes[], Double_t areas[], Int_t distance, Int_t activeMass, Double_t PoT, Int_t draw){
+void countEvents(Double_t energy[], Double_t fluxes[], Double_t areas[], Int_t distance, Int_t activeMass, Double_t PoT, Int_t draw, TH1D* hEvents){
    c1.cd(1);
-   TH1D* hEvents = new TH1D("hEvents","Events", nbinsx, energy[0], energy[nbinsx-1]);
    Double_t* events = new Double_t[nbinsx];
    //units of cross-section: 10e-38 cm^2/Ar = 10e-38/100/100 m^2/Ar
    //units of flux: N/[m^2*(50MeV)*(10^6 PoT)] 
@@ -110,8 +109,6 @@ TH1D* countEvents(Double_t energy[], Double_t fluxes[], Double_t areas[], Int_t 
       hEvents->Draw();
       SBNDLeg.AddEntry(hEvents, "original", "p");
    }
-
-   return hEvents;
 }
 
 /**
@@ -121,9 +118,10 @@ TH1D* countEvents(Double_t energy[], Double_t fluxes[], Double_t areas[], Int_t 
    @return a smeared Gaussian with the given energy resolution.
 */
 Double_t* convolution(Double_t resolution, Int_t color, Int_t option, TH1D* hEvents){
-   TH1D *hconv = (TH1D*)hEvents->Clone("hconv");
-   Double_t* smearedEvents = new Double_t[nbinsx];
+   TH1D *hconv = (TH1D*)hEvents->Clone();
    hconv->Reset();
+
+   Double_t* smearedEvents = new Double_t[nbinsx];
 
    if(option != 121){
       if(color==1){
@@ -141,12 +139,12 @@ Double_t* convolution(Double_t resolution, Int_t color, Int_t option, TH1D* hEve
       }
    }
 
-   auto binWidth = hEvents->GetXaxis()->GetBinWidth(1);
+   auto binWidth = hconv->GetXaxis()->GetBinWidth(1);
    for(Int_t i=1; i<nbinsx+1; i++){
       Double_t total=0.0;
       for(Int_t j=1; j<nbinsx+1; j++){
-         auto xi=hEvents->GetXaxis()->GetBinCenter(i);
-         auto xj=hEvents->GetXaxis()->GetBinCenter(j);
+         auto xi=hconv->GetXaxis()->GetBinCenter(i);
+         auto xj=hconv->GetXaxis()->GetBinCenter(j);
          auto yj=hEvents->GetBinContent(j);
          auto sigma = resolution*sqrt(xj);
          total = total + yj*ROOT::Math::gaussian_pdf(xi, sigma, xj);
@@ -160,30 +158,21 @@ Double_t* convolution(Double_t resolution, Int_t color, Int_t option, TH1D* hEve
 }   
 
 
-//Draw contours for 90% conf level, 3sigma, and 5sigma in same plot
+/**
+   Draw contour for 5sigma
+   @param **Chi 2-D Chi^2 array
+*/
 void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_t ys[], Int_t option){
    //Contour value for 5*sigma = 23.40
    c1.cd(2);
    legend.SetHeader("Legend", "C");   
 
    TH2D *hCont = new TH2D("hCont","Smeared 5*sigma Contour",numX-1, xs, numY-1, ys); 
+   hCont->Reset();
    hCont->SetTitle("Smeared 5*sigma Contour; sin(2theta_mumu)^2; dm_41^2 (eV^2)");
    for(Int_t i=0; i< numX; i++){
       for(Int_t j=0; j<numY; j++){
          if(i!=0 && i!=numX-1 && j!=0 && j!=numY-1){
-/*
-             if((Chi[i][j+1]>23.4 && Chi[i][j-1]<23.4)||(Chi[i+1][j]>23.4 && Chi[i-1][j]<23.4)){ 
-                if(option==1){
-                   hCont->Fill(xs[i],ys[j],1); hCont->SetMarkerColor(46);
-                }
-                else if(option==2){ 
-                   hCont->Fill(xs[i],ys[j],1); hCont->SetMarkerColor(42);
-                }
-                else if(option==3){
-                   hCont->Fill(xs[i],ys[j],1); hCont->SetMarkerColor(38);
-                }
-             }
-*/
              if(Chi[i][j]>=23.0 & Chi[i][j] <=24.0){
                 if(option==1){
                    hCont->Fill(xs[i],ys[j],1); hCont->SetMarkerColor(46);
@@ -217,8 +206,10 @@ void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_
    }
 }
 
-//Find and store all Chi-squared values for Icarus ONLY
-Double_t** chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], Int_t option){
+/**
+   Find and store all Chi-squared values for Icarus ONLY
+*/
+void chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], Int_t option){
 
    Double_t spaceM = 0.005;
    Double_t spaceA = 0.005;
@@ -252,25 +243,25 @@ Double_t** chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], I
          for(int n=0; n < nbinsx; n++){
             if(farEvents[n]==0 || nearEvents[n]==0) {continue;}
 
-/*taking hbar and c into account, from Boris Kayser's paper,
-
-* survival probability P_{numu->numu} = 1-sin(2theta_mumu)^2*sin(1.27*dm^2(eV^2)*L(km)/E_nu(GeV))^2
-*/
+           /*taking hbar and c into account, from Boris Kayser's paper,
+            * survival probability P_{numu->numu} = 1-sin(2theta_mumu)^2*sin(1.27*dm^2(eV^2)*L(km)/E_nu(GeV))^2
+            */
             auto prob = 1 - xs[i]*pow(sin(1.27*ys[j]*0.001*Icarus_dist/nrgs[n]),2); //for Icarus
 
-/* We have E_flux=(0.3*N)^2, but this is an uncertainty that shifts the data from SBND and Icarus 
-* by the same amount, 30% up and down (and so "cancels"). What we really care about now, is the 
-* counting error propagated from SBND to Icarus - assuming 100% correlation between the near and
-* far detector, we only know our measurements from the far detector as well as we knew it in the
-* near detector, i.e. sqrt(N_SBND). However, this error relies not on the exact number of events
-* seen from SBND, but rather the proportion of the error per bin: sqrt(N_100)/N_100. 
-* Scaling this value to that of Icarus:
-* E_propagated = [sqrt(N_100)/N_100]^2*(N_600/N_100). Thus,
-* E_tot (matrix values) = [sqrt(N_100)/N_100]^2*(N_600/N_100) + sqrt(N_600)^2,
-* since Icarus also has its own counting error to deal with.
-* Chi^2 = Sum(N_i^{null} - N_i^{osc})^2*1/E_tot
-*/
+            /* We have E_flux=(0.3*N)^2, but this is an uncertainty that shifts the data from SBND and Icarus 
+            * by the same amount, 30% up and down (and so "cancels"). What we really care about now, is the 
+            * counting error propagated from SBND to Icarus - assuming 100% correlation between the near and
+            * far detector, we only know our measurements from the far detector as well as we knew it in the
+            * near detector, i.e. sqrt(N_SBND). However, this error relies not on the exact number of events
+            * seen from SBND, but rather the proportion of the error per bin: sqrt(N_100)/N_100. 
+            * Scaling this value to that of Icarus:
+            * E_propagated = [sqrt(N_100)/N_100]^2*(N_600/N_100). Thus,
+            * E_tot (matrix values) = [sqrt(N_100)/N_100]^2*(N_600/N_100) + sqrt(N_600)^2,
+            * since Icarus also has its own counting error to deal with.
+            * Chi^2 = Sum(N_i^{null} - N_i^{osc})^2*1/E_tot
+            */
             auto totErr = pow((sqrt(nearEvents[n])/nearEvents[n]),2)*(farEvents[n]/nearEvents[n]) + farEvents[n];
+
             auto t1 = pow(totErr, -1);
             auto t2 = pow(farEvents[n]-prob*farEvents[n], 2);      
             Chi2sum += t1*t2;
@@ -285,12 +276,11 @@ Double_t** chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], I
    for(int nSine=0; nSine < No_ang; nSine++){
       for(int nMass=0; nMass < No_mass; nMass++){
          Chi2[nSine][nMass] = Chi2[nSine][nMass]-minChi;
+         if(Chi2[nSine][nMass] < 100) cout << Chi2[nSine][nMass]<< endl;
       }
    }
 
    drawContours(Chi2, No_ang, No_mass, xs, ys, option);   
-
-   return Chi2;
 }
 
 Int_t goose(){
@@ -298,18 +288,21 @@ Int_t goose(){
    Double_t* flux = findFlux();
    Double_t* energy = findEnergies();    
    Double_t* cross = findCrossSections();
-   TH1D* nullSBND = countEvents(energy, flux, cross, SBND_dist, activeSBND, sPOT, 1);
-   TH1D* nullIcarus = countEvents(energy, flux, cross, Icarus_dist, activeIc, iPOT, 121);
 
-//   Double_t* SEvents5 = convolution(0.05, 1, 1, nullSBND);
-//   Double_t* SEvents10 = convolution(0.1, 2, 1, nullSBND);
+   TH1D* nullSBND = new TH1D("nullSBND","SBND Events", nbinsx, energy[0], energy[nbinsx-1]);
+   countEvents(energy, flux, cross, SBND_dist, activeSBND, sPOT, 1, nullSBND);
+   TH1D* nullIcarus = new TH1D("nullIcarus","ICARUS Events", nbinsx, energy[0], energy[nbinsx-1]);
+   countEvents(energy, flux, cross, Icarus_dist, activeIc, iPOT, 121, nullIcarus);
+
+   Double_t* SEvents5 = convolution(0.05, 1, 1, nullSBND);
+   Double_t* SEvents10 = convolution(0.10, 2, 1, nullSBND);
    Double_t* SEvents25 = convolution(0.25, 3, 1, nullSBND);
-//   Double_t* IEvents5 = convolution(0.05, 1, 121, nullIcarus);
-//   Double_t* IEvents10 = convolution(0.10, 2, 121, nullIcarus);
+   Double_t* IEvents5 = convolution(0.05, 1, 121, nullIcarus);
+   Double_t* IEvents10 = convolution(0.10, 2, 121, nullIcarus);
    Double_t* IEvents25 = convolution(0.25, 3, 121, nullIcarus);
 
-//   chiSq(energy, IEvents5, SEvents5, 1);
-//   chiSq(energy, IEvents10, SEvents10, 2);
+   chiSq(energy, IEvents5, SEvents5, 1);
+   chiSq(energy, IEvents10, SEvents10, 2);
    chiSq(energy, IEvents25, SEvents25, 3);
 
    return 0;
