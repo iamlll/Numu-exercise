@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <math.h>
-#include <random>
+#include <TRandom.h>
 using namespace std;
 
 Double_t iPOT = 6e20; //protons-on-target in Icarus
@@ -15,8 +15,8 @@ const Int_t Icarus_dist = 600; //m, distance from Icarus to the source
 const Int_t activeSBND = 112; //112 tons active mass of LAr in SBND
 const Int_t activeIc = 476; //476 tons active mass of LAr in Icarus
 
-TCanvas c1("c1", "Plots", 1000, 500);
-TLegend SBNDLeg(.7, 0.6, .9, 0.8, "Legend"); //legend for SBND events
+TCanvas c1("c1", "Plots", 1250, 1250);
+TLegend SBNDLeg(.75, 0.45, .95, 0.65, "Legend"); //legend for SBND events
 TLegend legend(0.1,0.2,.3,.4);
 
 TH1D* hflux;
@@ -24,9 +24,12 @@ Double_t mean, SD; //mean and standard deviation of flux histogram
 TGraph* graph;
 Int_t nbinsx, size; //# bins in provided histogram + # points in provided graph
 
+/**
+   Read ROOT files, pull flux histogram and cross-section graphs out
+*/
 void readFiles(){
    //Divide canvas  
-   c1.Divide(2,1);
+   c1.Divide(2,2);
  
    //retrieving histogram from file
    TFile* flux = new TFile("flux.root");
@@ -117,11 +120,9 @@ void countEvents(Double_t energy[], Double_t fluxes[], Double_t areas[], Int_t d
    @param resolution the energy resolution of muon neutrinos in the simulation.
    @return a smeared Gaussian with the given energy resolution.
 */
-Double_t* convolution(Double_t resolution, Int_t color, Int_t option, TH1D* hEvents){
+TH1D* convoluteHist(Double_t resolution, Int_t color, Int_t option, TH1D* hEvents){
    TH1D *hconv = (TH1D*)hEvents->Clone();
    hconv->Reset();
-
-   Double_t* smearedEvents = new Double_t[nbinsx];
 
    if(option != 121){
       if(color==1){
@@ -151,13 +152,20 @@ Double_t* convolution(Double_t resolution, Int_t color, Int_t option, TH1D* hEve
       }  
       auto value = total*binWidth;
       hconv->SetBinContent(i, value);
-      smearedEvents[i]=value;
    }
    if(option!=121) hconv->Draw("SAME");
+   return hconv;
+} 
+
+Double_t* convolution(Double_t resolution, Int_t color, Int_t option, TH1D* hEvents){
+   TH1D* hconv = convoluteHist(resolution, color, option, hEvents);
+   Double_t* smearedEvents = new Double_t[nbinsx];
+   for(Int_t i=1; i<nbinsx+1; i++){
+      smearedEvents[i-1]=hconv->GetBinContent(i);
+   }
    return smearedEvents;
-}   
-
-
+}
+  
 /**
    Draw contour for 5sigma
    @param **Chi 2-D Chi^2 array
@@ -283,6 +291,59 @@ void chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], Int_t o
    drawContours(Chi2, No_ang, No_mass, xs, ys, option);   
 }
 
+/**
+   Draw the covariance matrix for a specified number of universes
+
+   @param nUniverses the number of universes where the energy resolution takes on a value within the range res +/- uncertainty
+   @param res
+   @param uncertainty
+   @param hEvents
+*/
+
+TH2D* getCovariance(Int_t nUniverses, Double_t res, Double_t uncertainty, TH1D* hEvents){
+   //Create "central value" histogram 
+   TH1D* hcv = convoluteHist(res, 1, 121, hEvents);
+   TH2D* covariance = new TH2D("covariance","Covariance Matrix;Bin index;Bin index", nbinsx, 0, nbinsx, nbinsx, 0, nbinsx);
+   
+   for(Int_t k=0; k<nUniverses; k++){
+      res = gRandom->Gaus(res, uncertainty);
+      TH1D* h = convoluteHist(res, 1, 121, hEvents);         
+
+      for(Int_t i=1; i<nbinsx+1;i++){
+         for(Int_t j=1; j<nbinsx+1;j++){
+            auto ci= hcv->GetBinContent(i) - h->GetBinContent(i);
+            auto cj = hcv->GetBinContent(j) - h->GetBinContent(j);
+
+            auto value = covariance->GetBinContent(i,j) + (ci*cj)/nUniverses;
+            covariance->SetBinContent(i, j, value);
+         }
+      }
+   }
+
+   c1.cd(3);   
+   gPad->SetLogz();
+   covariance->Draw("COLZ");
+
+   return covariance;
+}
+
+void getCorrelation(TH2D* covariance){
+   TH2D* corr = (TH2D*)covariance->Clone();
+   corr->SetTitle("Correlation Matrix");
+   corr->Reset();
+   for(Int_t i=1;i<nbinsx+1;i++){
+      for(Int_t j=1;j<nbinsx+1;j++){
+         auto val = covariance->GetBinContent(i,j);
+         auto error_ii = covariance->GetBinContent(i,i);
+         auto error_jj = covariance->GetBinContent(j,j);
+         corr->SetBinContent(i,j,val/sqrt(error_ii*error_jj));
+      }
+   }
+   corr->GetZaxis()->SetRangeUser(-1,1);
+   c1.cd(4);
+   corr->Draw("COLZ");
+}
+
 Int_t goose(){
    readFiles();
    Double_t* flux = findFlux();
@@ -304,6 +365,9 @@ Int_t goose(){
    chiSq(energy, IEvents5, SEvents5, 1);
    chiSq(energy, IEvents10, SEvents10, 2);
    chiSq(energy, IEvents25, SEvents25, 3);
+   
+   TH2D* covar = getCovariance(1500, 0.10, .05, nullSBND);   
+   getCorrelation(covar);
 
    return 0;
 }
