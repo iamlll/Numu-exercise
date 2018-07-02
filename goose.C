@@ -1,4 +1,4 @@
-//Making a 5sigma contour plot for a nu_muon disappearance simulation with Gaussian smearing.
+//Makes a 5*sigma contour plot for a nu_muon disappearance simulation with Gaussian smearing.
 
 #include <iostream>
 #include <fstream>
@@ -25,7 +25,7 @@ TGraph* graph;
 Int_t nbinsx, size; //# bins in provided histogram + # points in provided graph
 
 /**
-   Read ROOT files, pull flux histogram and cross-section graphs out
+   Pull flux histogram and cross-section graphs out from given ROOT files
 */
 void readFiles(){
    //Divide canvas  
@@ -47,7 +47,7 @@ void readFiles(){
 
 /**
    Find the flux data given by the histogram in flux.root file; store data in array.
-   @return an array containing the flux data from a histogram.
+   @return array containing flux data from a histogram.
 */ 
 Double_t* findFlux(){ 
    Double_t* fluxes = new Double_t[nbinsx];
@@ -62,7 +62,7 @@ Double_t* findFlux(){
 
 /**
    Finds energies corresponding to each bin, in GeV.
-   @return array of energy values 
+   @return array of energy values
 */
 Double_t* findEnergies(){
    Double_t* nrgs = new Double_t[nbinsx];
@@ -73,7 +73,10 @@ Double_t* findEnergies(){
    return nrgs;
 }
 
-//Find cross-sections of neutrino events
+/**
+   Find cross-sections of neutrino events
+   @return pointer to array of cross-sections for each datapoint on a graph
+*/
 Double_t* findCrossSections(){
    Double_t* areas = new Double_t[nbinsx];
    //Get total # points in graph
@@ -92,7 +95,17 @@ Double_t* findCrossSections(){
    return areas;
 }
 
-//Find "actual" event counts by multiplying data by event rate
+/**
+   Find "actual" event counts by multiplying data by event rate
+   @param energy array of energy values of the same size as number of flux entries
+   @param fluxes array of neutrino flux values 
+   @param areas neutrino event cross-sections
+   @param distance distance of desired detector from the source
+   @param activeMass the active mass of liquid scintillator inside the detector
+   @param PoT protons-on-target for a given detector
+   @param draw a drawing option (121 does not draw a histogram)
+   @param hEvents a histogram of neutrino event rates
+*/
 void countEvents(Double_t energy[], Double_t fluxes[], Double_t areas[], Int_t distance, Int_t activeMass, Double_t PoT, Int_t draw, TH1D* hEvents){
    c1.cd(1);
    Double_t* events = new Double_t[nbinsx];
@@ -118,6 +131,9 @@ void countEvents(Double_t energy[], Double_t fluxes[], Double_t areas[], Int_t d
    Convolve the neutrino event distribution with a Gaussian smearing (resolution function, resolution of user's choice). Save the convoluted values into an array of smeared event rates.
 
    @param resolution the energy resolution of muon neutrinos in the simulation.
+   @param color an option to pick a color of the output histogram (1: red, 2: yellow, 3: blue)
+   @param option an option to draw the histogram (121 does not draw)
+   @param hEvents a (null hypothesis) histogram of event rates
    @return a smeared Gaussian with the given energy resolution.
 */
 TH1D* convoluteHist(Double_t resolution, Int_t color, Int_t option, TH1D* hEvents){
@@ -156,7 +172,14 @@ TH1D* convoluteHist(Double_t resolution, Int_t color, Int_t option, TH1D* hEvent
    if(option!=121) hconv->Draw("SAME");
    return hconv;
 } 
-
+/**
+   Convolve a given histogram using Gaussians
+   @param resolution the energy resolution of muon neutrinos in the simulation.
+   @param color an option to pick a color of the output histogram (1: red, 2: yellow, 3: blue)
+   @param option an option to draw the histogram (121 does not draw)
+   @param hEvents a (null hypothesis) histogram of event rates
+   @return a matrix of smeared event rates
+*/
 Double_t* convolution(Double_t resolution, Int_t color, Int_t option, TH1D* hEvents){
    TH1D* hconv = convoluteHist(resolution, color, option, hEvents);
    Double_t* smearedEvents = new Double_t[nbinsx];
@@ -167,8 +190,13 @@ Double_t* convolution(Double_t resolution, Int_t color, Int_t option, TH1D* hEve
 }
   
 /**
-   Draw contour for 5sigma
-   @param **Chi 2-D Chi^2 array
+   Draw contour for 5*sigma
+   @param Chi 2-D array of Chi-squared values (amplitude, mass-splitting value)
+   @param numX the number of amplitude (sin(2theta)^2) values you want to loop over
+   @param numY the number of mass-splitting (dm^2) values you want to loop over
+   @param xs an array of the (log scale) amplitude values
+   @param ys an array of the (log scale) mass splitting values
+   @param option chooses which energy resolution you want to draw
 */
 void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_t ys[], Int_t option){
    //Contour value for 5*sigma = 23.40
@@ -216,6 +244,10 @@ void drawContours(Double_t **Chi, Int_t numX, Int_t numY, Double_t xs[], Double_
 
 /**
    Find and store all Chi-squared values for Icarus ONLY
+   @param nrgs array of energy values for which neutrino events were being probed
+   @param farEvents array of event rates at the far detector (ICARUS)
+   @param nearEvents array of event rates at the near detector (SBND)
+   @option drawing option specifying which resolution contour is to be drawn (1: 5%, 2: 10%, 3: 25%)
 */
 void chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], Int_t option){
 
@@ -295,9 +327,10 @@ void chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], Int_t o
    Draw the covariance matrix for a specified number of universes
 
    @param nUniverses the number of universes where the energy resolution takes on a value within the range res +/- uncertainty
-   @param res
-   @param uncertainty
-   @param hEvents
+   @param res the resolution at which the detector is taking data
+   @param uncertainty the uncertainty to which we know/don't know the resolution
+   @param hEvents histogram of neutrino event rates at the detector you care about
+   @return 2-dimensional histogram of error covariances (dependencies between bins), based on Gaussian spread
 */
 
 TH2D* getCovariance(Int_t nUniverses, Double_t res, Double_t uncertainty, TH1D* hEvents){
@@ -327,6 +360,11 @@ TH2D* getCovariance(Int_t nUniverses, Double_t res, Double_t uncertainty, TH1D* 
    return covariance;
 }
 
+/**
+   Find and draw the correlation matrix, giving strength of correlation between two errors (-1 is perfect negative, +1 is perfect positive)
+   
+   @param covariance histogram of covariance matrix plot
+*/
 void getCorrelation(TH2D* covariance){
    TH2D* corr = (TH2D*)covariance->Clone();
    corr->SetTitle("Correlation Matrix");
@@ -344,6 +382,9 @@ void getCorrelation(TH2D* covariance){
    corr->Draw("COLZ");
 }
 
+/**
+   Main method! This is where everything gets called.
+*/
 Int_t goose(){
    readFiles();
    Double_t* flux = findFlux();
@@ -355,13 +396,16 @@ Int_t goose(){
    TH1D* nullIcarus = new TH1D("nullIcarus","ICARUS Events", nbinsx, energy[0], energy[nbinsx-1]);
    countEvents(energy, flux, cross, Icarus_dist, activeIc, iPOT, 121, nullIcarus);
 
+   //smeared event rates at SBND given a specific energy resolution
    Double_t* SEvents5 = convolution(0.05, 1, 1, nullSBND);
    Double_t* SEvents10 = convolution(0.10, 2, 1, nullSBND);
    Double_t* SEvents25 = convolution(0.25, 3, 1, nullSBND);
+   //smeared event rates at ICARUS given a specific energy resolution
    Double_t* IEvents5 = convolution(0.05, 1, 121, nullIcarus);
    Double_t* IEvents10 = convolution(0.10, 2, 121, nullIcarus);
    Double_t* IEvents25 = convolution(0.25, 3, 121, nullIcarus);
 
+   //Plot all Chi-squared contours on same plot
    chiSq(energy, IEvents5, SEvents5, 1);
    chiSq(energy, IEvents10, SEvents10, 2);
    chiSq(energy, IEvents25, SEvents25, 3);
