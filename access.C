@@ -118,7 +118,7 @@ Double_t* countEvents(Double_t fluxes[], Double_t areas[]){
    
    //total # Argon atoms in detector: 
    auto totAr = 476 * 1e6/39.948 * 6.02e23; //476 tons active mass of LAr in Icarus; 39.948 g/mol Ar; 6.02e23 atoms/mol 
-   auto scalingfactor = (476/89) * pow(470./L,2) * 1e-42 * totAr * (6e20*1e-6); 
+   auto scalingfactor = (476./89) * pow(470./L,2) * 1e-42 * totAr * (6e20*1e-6); 
    //(476/89) = mass normalization factor; (470/600)^2 = scaling factor for distance (data normalized at 470 m from source); 1e-4 converting cm^2 to m^2; 6*10^20 protons on-target     
 
    for(int i=0; i < nbinsx; i++){
