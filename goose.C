@@ -6,14 +6,16 @@
 #include <TRandom.h>
 using namespace std;
 
+const Int_t activeMicro = 89; //active mass of MicroBooNE
+
 Double_t iPOT = 6e20; //protons-on-target in Icarus
 Double_t sPOT = 6e20;//protons-on-target in SBND
 
 const Int_t SBND_dist = 100; //m, dist from SBND to the source
 const Int_t Icarus_dist = 600; //m, distance from Icarus to the source
 
-const Int_t activeSBND = 112; //112 tons active mass of LAr in SBND
-const Int_t activeIc = 476; //476 tons active mass of LAr in Icarus
+const Double_t activeSBND = 112; //112 tons active mass of LAr in SBND
+const Double_t activeIc = 476; //476 tons active mass of LAr in Icarus
 
 TCanvas c1("c1", "Plots", 1250, 1250);
 TLegend SBNDLeg(.75, 0.45, .95, 0.65, "Legend"); //legend for SBND events
@@ -114,7 +116,7 @@ void countEvents(Double_t energy[], Double_t fluxes[], Double_t areas[], Int_t d
    
    //total # Argon atoms in detector: 
    auto totAr = activeMass * 1e6/39.948 * 6.02e23; //39.948 g/mol Ar; 6.02e23 atoms/mol 
-   auto scalingfactor = pow(470./distance,2) * 1e-42 * totAr * (PoT*1e-6); //need scaling factor for distance (data normalized at 470 m from source); 1e-4 converting cm^2 to m^2; PoT=protons on-target     
+   auto scalingfactor = (activeMass/activeMicro)*pow(470./distance,2) * 1e-42 * totAr * (PoT*1e-6); //need scaling factor for distance (data normalized at 470 m from source); 1e-4 converting cm^2 to m^2; PoT=protons on-target     
 
    for(int i=0; i < nbinsx; i++){
       events[i] = fluxes[i]*areas[i] * scalingfactor ; //left with units of: (# neutrinos interacting)/50 MeV bin
