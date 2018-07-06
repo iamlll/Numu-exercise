@@ -3,6 +3,8 @@
 #include <math.h>
 using namespace std;
 
+const Int_t activeMicro = 89; //active mass of MicroBooNE
+
 const Int_t SBND_dist = 100; //m, dist from SBND to the source
 const Int_t Icarus_dist = 600; //m, distance from Icarus to the source
 
@@ -84,7 +86,7 @@ Double_t* countEvents(Double_t fluxes[], Double_t areas[], Int_t distance, Int_t
    
    //total # Argon atoms in detector: 
    auto totAr = activeMass * 1e6/39.948 * 6.02e23; //39.948 g/mol Ar; 6.02e23 atoms/mol 
-   auto scalingfactor = pow(470./distance,2) * 1e-42 * totAr * (PoT*1e-6); //need scaling factor for distance (data normalized at 470 m from source); 1e-4 converting cm^2 to m^2; PoT=protons on-target     
+   auto scalingfactor = ((Double_t)activeMass/activeMicro)*pow(470./distance,2) * 1e-42 * totAr * (PoT*1e-6); //need scaling factor for distance (data normalized at 470 m from source); 1e-4 converting cm^2 to m^2; PoT=protons on-target     
 
    for(int i=0; i < nbinsx; i++){
       events[i] = fluxes[i]*areas[i] * scalingfactor ; //left with units of: (# neutrinos interacting)/50 MeV bin
