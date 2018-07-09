@@ -255,6 +255,8 @@ void chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], Int_t o
 
    Double_t spaceM = 0.005;
    Double_t spaceA = 0.005;
+   Int_t No_mass = Int_t((2.0-(-2.0))/spaceM); cout << "# mass entries: " << No_mass << endl;
+   Int_t No_ang = Int_t(2.0/spaceA); cout << "# angle entries: " << No_ang << endl;
    Double_t** Chi2 = 0;
    Chi2 = new Double_t*[No_ang];
  
@@ -316,7 +318,6 @@ void chiSq(Double_t nrgs[], Double_t farEvents[], Double_t nearEvents[], Int_t o
    for(int nSine=0; nSine < No_ang; nSine++){
       for(int nMass=0; nMass < No_mass; nMass++){
          Chi2[nSine][nMass] = Chi2[nSine][nMass]-minChi;
-         if(Chi2[nSine][nMass] < 100) cout << Chi2[nSine][nMass]<< endl;
       }
    }
 
