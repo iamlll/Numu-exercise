@@ -155,7 +155,7 @@ Double_t** chiSq(Double_t nrgs[], Double_t events[]){
    Double_t spaceM = 0.005;
    Double_t spaceA = 0.005;
    Int_t No_mass = Int_t((2.0-(-2.0))/spaceM); cout << "# mass entries: " << No_mass << endl;
-   Int_t No_ang = Int_t(2.0/spaceA); cout << "# angle entries: " << No_ang << endl;
+   Int_t No_ang = Int_t(3.0/spaceA); cout << "# angle entries: " << No_ang << endl;
    Double_t** Chi2 = 0;
    Chi2 = new Double_t*[No_ang];
  
@@ -170,7 +170,7 @@ Double_t** chiSq(Double_t nrgs[], Double_t events[]){
    
    Int_t xCount = 0; Int_t yCount = 0;   
 
-   for(Double_t ang2 = pow(10,-2); ang2 < 1.0; ang2= ang2*pow(10,spaceA)){
+   for(Double_t ang2 = pow(10,-3); ang2 < 1.0; ang2= ang2*pow(10,spaceA)){
       xs[xCount] = ang2; 
       xCount++;
    }
